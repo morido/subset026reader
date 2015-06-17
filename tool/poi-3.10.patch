@@ -1,0 +1,657 @@
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/model/Colorref.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/model/Colorref.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/model/Colorref.java	2014-01-16 05:30:03.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/model/Colorref.java	2015-06-17 21:30:19.444631256 +0200
+@@ -152,4 +152,22 @@ public class Colorref implements Cloneab
+ 
+         return "[COLORREF] 0x" + Integer.toHexString( value );
+     }
++    
++    /**
++     * Converts a colorref to its hexadecimal representation
++     * adapted from {@link http://cfsearching.blogspot.de/2009/05/java-poi-hwpf-characterproperties.html}
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * @return A string containing the hex-value of the given colorref
++     */
++    public String toHex() {    	
++    	int r = (value >> 0) & 0xff;  // red
++    	int g = (value >> 8) & 0xff;  // green
++    	int b  = (value >> 16) & 0xff;  // blue
++    	int rgb = (r << 16) | (g << 8) | b;
++
++    	return String.format("%06X", rgb & 0xFFFFFF); //enforce leading zeros + width of 6
++
++    	//return Integer.toHexString(0xC000000 | rgb).substring(1);    	
++    }
+ }
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/model/ListLevel.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/model/ListLevel.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/model/ListLevel.java	2014-01-16 05:30:15.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/model/ListLevel.java	2015-06-17 21:30:19.448631256 +0200
+@@ -120,7 +120,63 @@ public final class ListLevel
+     {
+         return _lvlf.getJc();
+     }
++    
++    /**
++     * An unsigned integer that specifies the first (most-significant) zero-based level after which the number sequence of this level does not restart. The number sequence of this level does restart after any level that is more significant than the specified level. This MUST be less than or equal to the zero-based level of the list to which this LVLF corresponds.
++     * <p>see [MS-DOC], v20140721, 2.9.150</p>
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * 
++     * @return the first ({@code 0} is the most significant) level after which
++     * the numbering does not restart or {@code -1} if no restart is applicable
++     */
++    public short getRestart() {    	
++    	return _lvlf.isFNoRestart() ? _lvlf.getIlvlRestartLim() : -1;
++    }
+ 
++    /**
++     * Determines if the number formatting shall be overridden by
++     * {@code msonfcArabic}; unless it originally was {@code msonfcArabicLZ}
++     * in which case it is preserved.
++     * <p>see [MS-DOC], v20140721, 2.9.150 and [MS-OSHARED], v20140721, 2.2.1.3</p>
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * 
++     * @return {@code true} if the level numbering of this and all more
++     * significant levels must be overridden; {@code false} otherwise
++     */
++    public boolean isLegalNumbering() {
++    	return _lvlf.isFLegal();
++    }
++    
++    /**
++     * Array which specifies the character offsets of the level numbers in a
++     * level numbering string.
++     * <p>see [MS-DOC], v20140721, 2.9.150</p>
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * 
++     * @return {@code 0}-terminated array, unless it is full 
++     */
++    public byte[] getLevelNumberingPlaceholderOffsets() {    	
++    	return _lvlf.getRgbxchNums();
++    }
++    
++    /**
++     * Get the resulting (left) indentation value of the paragraph if the list numbering was removed.
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * @return the indentation value in twips <em>or</em> {@code -1} if no value is available / applicable
++     */
++    public int getSavedIndentation() {
++    	if (_lvlf.isFIndentSav()) {
++    		if (_lvlf.getDxaIndentSav() <= 0x00007BC0 || _lvlf.getDxaIndentSav() >= 0xFFFF8440) {
++    			return _lvlf.getDxaIndentSav();
++    		}
++    	}    	
++    	return -1;    	
++    }
++    
+     public byte[] getGrpprlChpx()
+     {
+         return _grpprlChpx;
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/sprm/SectionSprmUncompressor.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/sprm/SectionSprmUncompressor.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/sprm/SectionSprmUncompressor.java	2014-01-16 05:30:17.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/sprm/SectionSprmUncompressor.java	2015-06-17 21:30:19.448631256 +0200
+@@ -208,6 +208,36 @@ public final class SectionSprmUncompress
+       case 0x33:
+         newSEP.setWTextFlow ((short) sprm.getOperand());
+         break;
++      case 0x3C:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSRncFtn
++	  // added by Moritz Dorka
++	  newSEP.setRncFtn((short) sprm.getOperand());
++	  break;
++      case 0x3E:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSRncEdn
++	  // added by Moritz Dorka
++	  newSEP.setRncEdn((short) sprm.getOperand());
++	  break;
++      case 0x3F:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSNFtn
++	  // added by Moritz Dorka
++	  newSEP.setNFtn((int) sprm.getOperand());
++	  break;
++      case 0x40:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSNFtnRef
++	  // added by Moritz Dorka
++	  newSEP.setNfcFtnRef((int) sprm.getOperand());
++	  break;
++      case 0x41:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSNEdn
++	  // added by Moritz Dorka
++	  newSEP.setNEdn((int) sprm.getOperand());
++	  break;
++      case 0x42:
++	  // [MS-DOC], v20140721, 2.6.4, sprmSNEdnRef
++	  // added by Moritz Dorka
++	  newSEP.setNfcEdnRef((int) sprm.getOperand());
++	  break;
+       default:
+         break;
+     }
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/sprm/TableSprmUncompressor.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/sprm/TableSprmUncompressor.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/sprm/TableSprmUncompressor.java	2014-01-16 05:30:17.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/sprm/TableSprmUncompressor.java	2015-06-17 21:30:19.448631256 +0200
+@@ -203,7 +203,7 @@ public final class TableSprmUncompressor
+           // Sometimes, the grpprl does not contain data at every offset. I have no idea why this happens.
+           if(hasTCs && offset + (1 + ( (itcMac + 1) * 2) + (x * 20)) < grpprl.length)
+             rgtc[x] = TableCellDescriptor.convertBytesToTC(grpprl,
+-               offset + (1 + ( (itcMac + 1) * 2) + (x * 20)));
++               offset + (1 + ( (itcMac + 1) * 2) + (x * 20)), offset + (1 + ( (itcMac + 1) * 2) + (itcMac * 20)), x);
+           else
+             rgtc[x] = new TableCellDescriptor();
+         }
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/BorderCode.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/BorderCode.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/BorderCode.java	2014-01-16 05:29:58.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/BorderCode.java	2015-06-17 21:30:19.444631256 +0200
+@@ -68,6 +68,17 @@ public final class BorderCode implements
+     return _info == 0 && _info2 == 0 || _info == -1;
+   }
+ 
++  /**
++   * A brc80MayBeNil-detector according to MS DOC spec, 2014, 2.9.18
++   * 
++   * @return {@code true} if no border is applicable; {@code false} otherwise
++   * 
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   */
++  public boolean isNoBorder() {
++	  return (toInt() == 0xFFFFFFFF);
++  }
++
+   public boolean equals(Object o)
+   {
+     BorderCode brc = (BorderCode)o;
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/CharacterRun.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/CharacterRun.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/CharacterRun.java	2014-01-16 05:29:58.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/CharacterRun.java	2015-06-17 21:30:19.444631256 +0200
+@@ -19,6 +19,7 @@ package org.apache.poi.hwpf.usermodel;
+ 
+ import org.apache.poi.hwpf.HWPFDocument;
+ import org.apache.poi.hwpf.model.CHPX;
++import org.apache.poi.hwpf.model.Colorref;
+ import org.apache.poi.hwpf.model.FFData;
+ import org.apache.poi.hwpf.model.Ffn;
+ import org.apache.poi.hwpf.model.NilPICFAndBinData;
+@@ -393,6 +394,13 @@ public final class CharacterRun
+     _chpx.updateSprm(SPRM_ICO, (byte)color);
+   }
+ 
++  /**
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   */
++  public Colorref getCV() {
++	  return _props.getCv();
++  }
++  
+   public int getVerticalOffset()
+   {
+     return _props.getHpsPos();
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/Section.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/Section.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/Section.java	2014-01-16 05:29:57.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/Section.java	2015-06-17 21:30:19.444631256 +0200
+@@ -99,7 +99,55 @@ public final class Section extends Range
+     {
+         return _props.getFEvenlySpaced();
+     }
++    
++    /**
++     * @return an RNC specifying when and where footnote numbering restarts
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public short getFootnoteRestartQualifier() {
++	return _props.getRncFtn();
++    }
+ 
++    /**
++     * @return an offset to be added to footnote numbers
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getFootnoteNumberingOffset() {
++	return _props.getNFtn();
++    }
++    
++    /**
++     * @return an NFC specifying the numbering format for footnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getFootnoteNumberingFormat() {
++	return _props.getNfcFtnRef();
++    }
++    
++    /**
++     * @return an RNC specifying when and where endnote numbering restarts
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public short getEndnoteRestartQualifier() {
++	return _props.getRncEdn();
++    }
++    
++    /**
++     * @return an offset to be added to endnote numbers
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getEndnoteNumberingOffset() {
++	return _props.getNEdn();
++    }
++    
++    /**
++     * @return an NFC specifying the numbering format for endnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getEndnoteNumberingFormat() {
++	return _props.getNfcEdnRef();
++    }
++    
+     @Override
+     public String toString()
+     {
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/SectionProperties.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/SectionProperties.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/SectionProperties.java	2014-01-16 05:29:58.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/SectionProperties.java	2015-06-17 21:30:19.444631256 +0200
+@@ -24,6 +24,13 @@ import org.apache.poi.hwpf.model.types.S
+ 
+ public final class SectionProperties extends SEPAbstractType
+ {
++    private short field_60_rncftn;
++    private short field_61_rncedn;
++    private int field_62_nftn;
++    private int field_63_nfcftnref = 0x00; // initialize with default value; msonfcArabic
++    private int field_64_nedn;
++    private int field_65_nfcednref = 0x02; // initialize with default value; msonfcLCRoman
++    
+     public SectionProperties()
+     {
+         field_20_brcTop = new BorderCode();
+@@ -74,4 +81,119 @@ public final class SectionProperties ext
+         }
+     }
+ 
++    /**
++     * sprmSRncFtn, [MS-DOC], 20140721, 2.6.4
++     * 
++     * @param field_60_rncftn unsigned 8-bit integer specifying the footnote numbering restart condition
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setRncFtn(final short field_60_rncftn) {
++	this.field_60_rncftn = field_60_rncftn;
++    }
++    
++    /**
++     * @see #setRncFtn(int)
++     * @return an Rnc value specifying when and where footnote numbering restarts
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public short getRncFtn() {
++	return this.field_60_rncftn;
++    }
++    
++    /**
++     * sprmSRncEdn, [MS-DOC], 20140721, 2.6.4
++     * 
++     * @param field_61_rncftn unsigned 8-bit integer specifying the endnote numbering restart condition
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setRncEdn(final short field_61_rncedn) {
++	this.field_61_rncedn = field_61_rncedn;
++    }
++    
++    /**
++     * @see #setRncEdn(int)
++     * @return an Rnc value specifying when and where endnote numbering restarts
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public short getRncEdn() {
++	return this.field_61_rncedn;
++    }
++    
++    /**
++     * sprmSNftn, [MS-DOC], v20140721, 2.6.4
++     * 
++     * @param field_62_nftn a number specifying the offset to add to footnote numbers
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setNFtn(final int field_62_nftn) {
++	this.field_62_nftn = field_62_nftn;
++    }
++    
++    /**
++     * @see #setNFtn(int)
++     * @return a 16-bit integer specifying the offset to add to footnote numbering
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getNFtn() {
++	return this.field_62_nftn;
++    }
++    
++    /**
++     * sprmSNfcFtnRef, [MS-DOC], v20140721
++     * 
++     * @param field_63_nfcftnref an NFC specifying the numbering format for footnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setNfcFtnRef(final int field_63_nfcftnref) {
++	this.field_63_nfcftnref = field_63_nfcftnref;
++    }
++    
++    /**
++     * 
++     * @see #setNfcFtnRef(int)
++     * @return a 16-bit integer with an NFC specifying the numbering format for footnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getNfcFtnRef() {
++	return this.field_63_nfcftnref;
++    }
++    
++    /**
++     * sprmSNEdn, [MS-DOC], v20140721, 2.6.4
++     * 
++     * @param field_64_nedn a number specifying the offset to add to footnote numbers
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setNEdn(final int field_64_nedn) {
++	this.field_64_nedn = field_64_nedn;
++    }
++    
++    /**
++     * @see #setNEdn(int)
++     * @return a 16-bit integer specifying the offset to add to endnote numbering
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getNEdn() {
++	return this.field_64_nedn;
++    }
++    
++    /**
++     * sprmSNfcEdnRef, [MS-DOC], v20140721
++     * 
++     * @param field_65_nfcednref an NFC specifying the numbering format for endnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public void setNfcEdnRef(final int field_65_nfcednref) {
++	this.field_65_nfcednref = field_65_nfcednref;
++    }
++    
++    /**
++     * 
++     * @see #setNfcEdnRef(int)
++     * @return a 16-bit integer with an NFC specifying the numbering format for endnotes
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public int getNfcEdnRef() {
++	return this.field_65_nfcednref;
++    }
+ }
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/ShadingDescriptor.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/ShadingDescriptor.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/ShadingDescriptor.java	2014-01-16 05:29:57.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/ShadingDescriptor.java	2015-06-17 21:30:19.444631256 +0200
+@@ -65,4 +65,71 @@ public final class ShadingDescriptor ext
+                 + "; iPat: " + getIpat() + ")";
+     }
+ 
++    /**
++	 * Determines if ShdAuto according to MS DOC spec, 2014, 2.9.247 is set
++	 * 
++	 * @return {@code true} if ShdAuto is set; {@code false} otherwise
++	 * 
++	 * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++	 */
++	public boolean isShdAuto() {
++		return (getCvFore().toHex().equals("000000") && getCvBack().toHex().equals("000000") && ipatToAlpha() == 0);
++	}
++	
++	/**
++	 * Determines if ShdNil according to MS DOC spec, 2014, 2.9.247 is set
++	 * 
++	 * @return {@code true} if ShdAuto is set; {@code false otherwise
++	 * 
++	 * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++	 */
++	public boolean isShdNil() {
++		return (getCvFore().toHex().equals("FFFFFF") && getCvBack().toHex().equals("FFFFFF") && ipatToAlpha() == 0);
++	}
++    
++    /**
++     * Converts an ipat to a value between 0..100
++     * 
++     * <p><i>Note:<i>the ipat actually describes a fill pattern. But it is horribly difficult to represent those in CSS,
++     * so this is a simple workaround to make patterns (arbitrarily) distinguishable.</p>
++     * 
++     * @return An number between 0 and 100. The higher the number the denser the background and the lighter the foreground.
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     */
++    public short ipatToAlpha() {
++    	//taken from MS DOC spec, 2014, 2.9.121
++    	switch(field_3_ipat) {
++    	case 0x0000:
++    		return 0;
++    	case 0x0001:
++    		return 100;
++    	case 0x0002:
++    		return 5;
++    	case 0x0003:
++    		return 10;
++    	case 0x0004:
++    		return 20;
++    	case 0x0005:
++    		return 25;
++    	case 0x0006:
++    		return 30;
++    	case 0x0007:
++    		return 40;
++    	case 0x0008:
++    		return 50;
++    	case 0x0009:
++    		return 60;
++    	case 0x000A:
++    		return 70;
++    	case 0x000B:
++    		return 75;
++    	case 0x000C:
++    		return 80;
++    	case 0x000D:
++    		return 90;
++    	default:
++    		return 35; //replace all the other funny shading patters by 35
++    	}
++    }
+ }
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCellDescriptor.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCellDescriptor.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCellDescriptor.java	2014-01-16 05:29:58.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCellDescriptor.java	2015-06-17 21:30:19.444631256 +0200
+@@ -29,15 +29,88 @@ public final class TableCellDescriptor e
+   {
+   }
+ 
+-  protected void fillFields(byte[] data, int offset)
++  protected void fillFields(byte[] data, int offset, int lastoffset, int run)
+   {
+     field_1_rgf = LittleEndian.getShort(data, 0x0 + offset);
+     field_2_wWidth = LittleEndian.getShort(data, 0x2 + offset);
+     setBrcTop(new BorderCode(data, 0x4 + offset));
+     setBrcLeft(new BorderCode(data, 0x8 + offset));
+     setBrcBottom(new BorderCode(data, 0xc + offset));
+-    setBrcRight(new BorderCode(data, 0x10 + offset));
++    setBrcRight(new BorderCode(data, 0x10 + offset));              	
++    setShd(new ShadingDescriptor(getShadingData(data, lastoffset, run), 0));    
+   }
++  
++
++  /**
++   * Sets the shading data (cell background).
++   * This will not work for Word97 (8.0) and for tables with more than 22 columns (MS DOC spec, 2014, 2.6.3)
++   * 
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   * 
++   * @param data The input byte array
++   * @param lastoffset The index of the byte after the border-data {@see #fillFields(byte[], int, int, int)}
++   * @param cellIndex Index of the cell we are currently working on; starts from 0 
++   * @return An array of 10 bytes containing the extracted shading data	
++   */
++  private byte[] getShadingData(byte[] data, int lastoffset, int cellIndex) {
++	  //initialize shading data to shdAuto (MS DOC spec 2.9.247)
++	  byte[] shdArray = new byte[10];
++	  shdArray[0] = (byte) 0x00; //cvFore
++	  shdArray[1] = (byte) 0x00;
++	  shdArray[2] = (byte) 0x00;
++	  shdArray[3] = (byte) 0xFF;
++	  shdArray[4] = (byte) 0x00; //cvBack
++	  shdArray[5] = (byte) 0x00;
++	  shdArray[6] = (byte) 0x00;
++	  shdArray[7] = (byte) 0xFF;
++	  shdArray[8] = (byte) 0x00; //ipat
++	  shdArray[9] = (byte) 0x00;	
++	  
++
++	  //find sprmTDefTableShd80 (from Word97); it should usually be at lastoffset (i.e. the while wont fire)
++	  //we assume it has the same size as sprmTDefTableShd (from which we take the actual data)
++	  while (!(data[lastoffset] == (byte) 0x09 && data[lastoffset+1] == (byte) 0xD6)) {
++		  lastoffset++;
++		  if (lastoffset+1 > data.length-1) {
++			  //no sprmTDefTableShd80 available
++			  return shdArray; //assume the cell is not shaded
++		  }
++	  }
++	  int shdNum = data[lastoffset + 2] / 2; //the number of shading descriptors available
++
++
++	  if ((cellIndex +1) <= shdNum) {
++		  //shading data for current cell available
++		  //data for last cells of a row which are not shaded may be omitted; see MS DOC spec, 2014, 2.9.53
++
++		  //calculate offset of sprmTDefTableShd
++		  int sprmTDefTableShdStart = lastoffset + 2 + (shdNum * 2) +1;
++		  if ((data[sprmTDefTableShdStart] == (byte) 0x0A) && (data[sprmTDefTableShdStart+1] == (byte) 0x74)) {
++			  sprmTDefTableShdStart = sprmTDefTableShdStart + 6;  //sprmTTlp (6 bytes) is present; skip it
++		  }        
++		  //anything else here that we do not care about?
++		  while (!(data[sprmTDefTableShdStart] == (byte) 0x12) && (data[sprmTDefTableShdStart+1] == (byte) 0xD6)) {
++			  //we have not seen the sprmTDefTableShd header, yet; MS DOC spec, 2014, 2.6.3
++			  sprmTDefTableShdStart++;
++			  if (sprmTDefTableShdStart+1 > data.length-1) {
++				  //no sprmTDefTableShd available
++				  return shdArray; //assume the cell is not shaded
++			  }
++		  }
++
++		  sprmTDefTableShdStart = sprmTDefTableShdStart + 3; // 2 bytes sprm-Id + 1 byte length
++		  int shadingOffset = sprmTDefTableShdStart + (cellIndex * 10); //one shading descriptor is 10 bytes long
++		  if (shadingOffset+9 <= data.length-1) { //we wont be out of bounds        	
++			  //copy data into shdArray (we could use Arrays.copyOfRange instead)
++			  for (int i = 0; i<10; i++) {
++				  shdArray[i] = data[shadingOffset+i];
++			  }
++		  }       
++	  }
++
++	  return shdArray;	  
++  }
++  
+ 
+   public void serialize(byte[] data, int offset)
+   {
+@@ -61,10 +134,10 @@ public final class TableCellDescriptor e
+     return tc;
+   }
+ 
+-  public static TableCellDescriptor convertBytesToTC(byte[] buf, int offset)
++  public static TableCellDescriptor convertBytesToTC(byte[] buf, int offset, int lastoffset, int run)
+   {
+     TableCellDescriptor tc = new TableCellDescriptor();
+-    tc.fillFields(buf, offset);
++    tc.fillFields(buf, offset, lastoffset, run);
+     return tc;
+   }
+ 
+diff -rupN poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCell.java poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCell.java
+--- poi-3.10-FINAL/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCell.java	2014-01-16 05:29:58.000000000 +0100
++++ poi-3.10-FINAL_patched/src/scratchpad/src/org/apache/poi/hwpf/usermodel/TableCell.java	2015-06-17 21:30:19.444631256 +0200
+@@ -36,15 +36,29 @@ public final class TableCell
+         _levelNum = levelNum;
+     }
+ 
+-  public boolean isFirstMerged()
+-  {
+-    return _tcd.isFFirstMerged();
+-  }
++    /**
++     * Amended version according to MS Word spec, 2014, 2.9.317, horzMerge
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de> 
++     * @return true if this is the first cell in a set of horizontally merged cells
++     */
++    public boolean isFirstMerged()
++    {
++    	//return _tcd.isFFirstMerged();
++    	return (_tcd.isFMerged() || (_tcd.isFMerged() && _tcd.isFFirstMerged()));
++    }
+ 
+-  public boolean isMerged()
+-  {
+-    return _tcd.isFMerged();
+-  }
++    /**
++     * Amended version according to MS Word spec, 2014, 2.9.317, horzMerge
++     * 
++     * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++     * @return true if this a cell in a set of horizontally merged cells
++     */
++    public boolean isMerged()
++    {
++    	//return _tcd.isFMerged();
++    	return (_tcd.isFFirstMerged() && !_tcd.isFMerged());
++    }
+ 
+   public boolean isVertical()
+   {
+@@ -66,9 +80,15 @@ public final class TableCell
+     return _tcd.isFVertMerge();
+   }
+ 
++  /**
++   * Amended version according to MS DOC spec, 2014, 2.9.342
++   * 
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   * @return True if this is the first cell of a set of merged cells (i.e. the one whose text and formatting do matter)
++   */
+   public boolean isFirstVerticallyMerged()
+   {
+-    return _tcd.isFVertRestart();
++	  return (_tcd.isFVertRestart() && _tcd.isFVertMerge());
+   }
+ 
+   public byte getVertAlign()
+@@ -101,10 +121,28 @@ public final class TableCell
+     return _leftEdge;
+   }
+ 
+-  public int getWidth() // twips
++  public int getWidth() // twips or percent
+   {
+     return _width;
+   }
++  
++  
++  /** 
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   * @return A qualifier for the unit of measurement for the table cell width
++   */
++  public byte getFtsWidth() {
++	  return _tcd.getFtsWidth();
++  }
++  
++  /**
++   * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
++   * @return A shading descriptor for the current cell
++   */
++  public ShadingDescriptor getShd()
++  {
++	  return _tcd.getShd();
++  }
+ 
+   /** Returns the TableCellDescriptor for this cell.*/
+   public TableCellDescriptor getDescriptor(){
