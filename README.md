@@ -16,3 +16,7 @@ This software was written in the frame of the ITEA2 project [openETCS](http://ww
 **On the domain-specific formalization of requirement specifications - A case study of ETCS**
 
 This paper will soon be published through [Qucosa](http://www.qucosa.de).
+
+---
+
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18706.svg)](http://dx.doi.org/10.5281/zenodo.18706)
