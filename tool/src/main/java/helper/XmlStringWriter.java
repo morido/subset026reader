@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -115,6 +116,7 @@ public class XmlStringWriter {
 	    this.tagList.removeLast();
 	}
 	else {
+	    System.err.println(toString()); // DEBUG
 	    throw new IllegalArgumentException("Attempting to close a tag which has not been opened before.");			
 	}
     }
@@ -155,7 +157,7 @@ public class XmlStringWriter {
 	if (data == null) throw new IllegalArgumentException("Given data cannot be null.");
 	
 	try {
-	    this.xmlwriter.writeCharacters(data);			
+	    this.xmlwriter.writeCharacters(data);
 	} catch (XMLStreamException e) {
 	    logger.log(Level.SEVERE, "Could not write characters.", e);
 	    throw new IllegalStateException(e);
@@ -190,9 +192,11 @@ public class XmlStringWriter {
      * Closes all given elements in their correct order (i.e. preserving nesting)
      * 
      * @param elementsToClose The elements to close
+     * @throws IllegalArgumentException if the argument is {@code null}
      */
-    public void writeClosingElements(final String[] elementsToClose) {
-	String currentTag;		
+    public void writeClosingElements(final Set<String> elementsToClose) {
+	if (elementsToClose == null) throw new IllegalArgumentException("elementsToClose cannot be null.");
+	String currentTag;
 	final Iterator<String> tags = this.tagList.descendingIterator();
 
 	nextTag: while (tags.hasNext()) {

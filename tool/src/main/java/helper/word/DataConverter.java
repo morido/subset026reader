@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import static helper.Constants.Internal.MSWord.PLACEHOLDER_IMAGE;
 import static helper.Constants.MSWord.DELIMITER_LISTLEVEL;
+import static helper.Constants.MSWord.IDENTIFIER_APPENDIX;
 import helper.RegexHelper;
 import helper.annotations.DomainSpecific;
 
@@ -487,16 +488,20 @@ public enum DataConverter {
     @DomainSpecific
     public static String separateFakeListParagraph(final Paragraph paragraph, final boolean getNumberText) {
 	final String paragraphText = paragraph.text();
-	final String quotedListLevelDelimiter = RegexHelper.quoteRegex(DELIMITER_LISTLEVEL);	
-	final String pattern = "^((?:A\\d+|(?:[A-Z]+|[a-z]+|\\d+))(?:(?:" + quotedListLevelDelimiter + ")(?:[A-Z]+|[a-z]+|\\d+))*(?:" + quotedListLevelDelimiter + ")?)[ ]?\\t+(.+)$";		
+	final String quotedListLevelDelimiter = RegexHelper.quoteRegex(DELIMITER_LISTLEVEL);
+	final String quotedAppendixIdentifier = RegexHelper.quoteRegex(IDENTIFIER_APPENDIX);
+	//final String pattern = "^([[A-Za-z0-9]+" + quotedListLevelDelimiter + "]*[A-Za-z0-9]+" + quotedListLevelDelimiter + "?)[ ]?\t+(.+)$";
+	final String pattern = "^((?:" + quotedAppendixIdentifier + quotedListLevelDelimiter + "?\t+|(?:" + quotedAppendixIdentifier + quotedListLevelDelimiter + "?)?\\d+" + quotedListLevelDelimiter + "?\t+|(?:" + quotedAppendixIdentifier + quotedListLevelDelimiter + "?)?\\d+(?:" + quotedListLevelDelimiter + "\\d+)+" + quotedListLevelDelimiter + "?\\s+))(.+)$";
 	final String[] separatedParts = RegexHelper.extractRegex(paragraphText, pattern, 2);
 	final String output;
-	if (separatedParts == null) {
+	if (separatedParts == null || paragraph.isInTable()) {
 	    // this is no fake list paragraph
 	    output = null;
 	}
 	else if (getNumberText) {
 	    // return the numberText
+	    separatedParts[0] = separatedParts[0].trim(); // remove trailing spaces from regex pattern
+	    if (separatedParts[0].charAt(separatedParts[0].length()-1) == DELIMITER_LISTLEVEL) separatedParts[0] = separatedParts[0].substring(0, separatedParts[0].length()-1); // remove trailing dots
 	    if (separatedParts[0].matches("^A[0-9]" + quotedListLevelDelimiter + ".*")) {
 		// insert a missing list level delimiter for malformed numberTexts
 		final String original = separatedParts[0];

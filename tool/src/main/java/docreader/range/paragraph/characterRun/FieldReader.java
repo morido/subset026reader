@@ -255,6 +255,8 @@ public class FieldReader implements GenericReader<FieldStore<?>> {
 			// TODO rather make FieldIdentifier.IMAGE the fallback after EQUATION; but first check if this conforms with all the tests (i.e. do we ever reach the fallback else?)
 			if (typeText.matches("(?i).*Word\\.Picture.*")
 				|| typeText.matches("(?i).*Visio\\.Drawing.*") 
+				|| typeText.matches("(?i).*Designer\\.Drawing.*") // this matches Corel Designer; needed for subset-026, chapter 3, Baseline 2.3.0.d 
+				|| typeText.matches("(?i).*FlowCharter7\\.Document.*") // this matches iGrafx Flowcharter; needed for subset-026, chapter 5, Baseline 2.3.0.d 
 				|| typeText.matches("(?i).*Word\\.Document.*")
 				|| typeText.matches(".*Unknown")) identifier = FieldIdentifier.IMAGE;
 			else if (typeText.matches("(?i).*Equation.*")) identifier = FieldIdentifier.EQUATION;
@@ -322,7 +324,7 @@ public class FieldReader implements GenericReader<FieldStore<?>> {
 			    if (text.length() == 1 && text.charAt(0) == PLACEHOLER_OFFICEDRAWING) {
 				// is an officeDrawing
 				// Note: we are not making use of the OfficeDrawingReader here because we cannot extract any meaningful data anyways				
-				logger.log(Level.INFO, "Got a shape with an OfficeDrawing here. Will try obtain an image representation.");				
+				logger.log(Level.INFO, "Got a shape with an OfficeDrawing here. Will try to obtain an image representation.");				
 				// there is in fact picture data here; so we could do DataConverter.getPicOffset(secondSubRange.getCharacterRun(1)); but that would only get us to the actual OfficeDrawing which we cannot render
 				referenceRangeOffset = internalFieldData.inputRun.getStartOffset();
 				referencePicOffset = DataConverter.getPicOffset(secondSubRange.getCharacterRun(1));

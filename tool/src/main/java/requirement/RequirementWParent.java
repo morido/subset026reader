@@ -16,7 +16,7 @@ import docreader.ReaderData;
  */
 public class RequirementWParent extends RequirementTemporary implements TraceableArtifact {
     private final int traceId;    
-    private final transient ReaderData readerData;
+    protected final transient ReaderData readerData;
     private final RequirementRoot parent; // hides a field from RequirementRoot
     private transient TraceabilityManagerHumanReadable hrManager = null; // hides a field from RequrementRoot
     private final InlineElementCounter inlineElementCounter = new InlineElementCounter();

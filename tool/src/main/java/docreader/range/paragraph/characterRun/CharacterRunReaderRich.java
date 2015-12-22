@@ -6,7 +6,6 @@ import helper.HTMLHelper;
 import helper.XmlStringWriter;
 import helper.word.DataConverter;
 
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -59,7 +58,7 @@ public class CharacterRunReaderRich implements CharacterRunReaderGeneric {
 
 	// Skip trailing newlines
 	//TODO check if this should rather be a cr.text().startsWith("\\r") or a cr.text().equals("\r\n");
-	if(characterRun.text().equals("\r")) return; 			
+	if(characterRun.text().equals("\r")) return;
 
 	// Step 1: Determine actual styling
 	if (characterRun.isBold()) {
@@ -167,7 +166,7 @@ public class CharacterRunReaderRich implements CharacterRunReaderGeneric {
     @Override
     public void close() {
 	this.xmlwriter.writeCharacters(""); // make sure to close a trailing <br/> from above
-	this.crCharacteristics.close(); 	// write closing elements in case there are any leftovers
+	this.crCharacteristics.close(); // write closing elements in case there are any leftovers
     }
 
     /**
@@ -191,23 +190,26 @@ public class CharacterRunReaderRich implements CharacterRunReaderGeneric {
 	    // Step 1: Determine differences for plain HTML tags
 
 	    final LinkedHashSet<String> oldPlainTmp = new LinkedHashSet<>(this.oldPlain);
-	    oldPlainTmp.removeAll(this.currentPlain);
+	    oldPlainTmp.removeAll(this.currentPlain); // all tags which are no more applicable
 
 	    final LinkedHashSet<String> currentPlainTmp = new LinkedHashSet<>(this.currentPlain);
-	    currentPlainTmp.removeAll(this.oldPlain);
+	    currentPlainTmp.removeAll(this.oldPlain); // all tags which are now applicable
 
+	    this.oldPlain.retainAll(this.currentPlain); // tags which remain applicable
+	    
 	    // Step 2: Determine differences for CSS tags
 	    // effectively we do not do this. Instead one character run always maps to one span tag
 	    // unless no CSS styling was applicable in which case there is no span at all
 
 	    // check if anything has changed between this and the previous run; if so write the changes
 	    if (!(oldPlainTmp.isEmpty() && currentPlainTmp.isEmpty() && this.currentCSSManager.equals(this.oldCSSManager))) {
-		writeClosingElementsCSS();		
+		writeClosingElementsCSS();
 		writeClosingElementsPlain(oldPlainTmp);
 		writeStartingElementsPlain(currentPlainTmp);
 		writeStartingElementsCSS();
 
-		this.oldPlain = new LinkedHashSet<>(this.currentPlain);
+		this.oldPlain = new LinkedHashSet<>(this.currentPlain);		
+		
 		this.currentPlain.clear();
 		this.oldCSSManager = this.currentCSSManager;
 		this.currentCSSManager = new CSSManager();
@@ -215,7 +217,7 @@ public class CharacterRunReaderRich implements CharacterRunReaderGeneric {
 	}
 
 	public void addToCurrentRunPlain(final String element) {				
-	    this.currentPlain.add(element);				
+	    this.currentPlain.add(element);
 	}
 
 	public void addToCurrentRunCSS(final String name, final String argument) {
@@ -254,10 +256,8 @@ public class CharacterRunReaderRich implements CharacterRunReaderGeneric {
 	 */
 	private void writeClosingElementsPlain(final Set<String> input) {
 	    assert input != null;
-	    final Deque<String> inputlist = new LinkedList<>(input);
-	    final Iterator<String> iterator = inputlist.descendingIterator();
-
-	    while(iterator.hasNext()) CharacterRunReaderRich.this.xmlwriter.writeEndElement(iterator.next());				
+	    // unfortunately we cannot guarantee "input" contains the tags in their correct order...	    
+	    CharacterRunReaderRich.this.xmlwriter.writeClosingElements(input);
 	}
 
 	/**

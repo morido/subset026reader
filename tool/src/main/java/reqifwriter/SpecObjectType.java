@@ -6,6 +6,8 @@ import java.util.Set;
 import reqifwriter.ReqifDataType.Datatype;
 import requirement.TraceableArtifact;
 
+import static helper.Constants.Generic.WRITE_CLASS_ATTRIBUTES;
+
 class SpecObjectType <T extends TraceableArtifact> {
     private final Set<ReqifField<?,T>> reqifFields = new HashSet<>();
     private final String identifier;
@@ -125,6 +127,12 @@ class SpecObjectType <T extends TraceableArtifact> {
 	output = input;
 	output = output.replaceAll("<(.+?)>", "<xhtml:$1>");
 	output = output.replaceAll("<xhtml:/(.+?)>", "</xhtml:$1>");
+	
+	// remove class-attributes
+	if (!WRITE_CLASS_ATTRIBUTES) {	    
+	    //output = output.replaceAll("class=\".+?\"", "");
+	    output = output.replaceAll("<(xhtml:[A-Za-z]+.*?) class=\".+?\"(.*?)>", "<$1$2>");	    
+	}
 	
 	return output;
 	// return input.replaceAll("</(.+?)>", "</xhtml:$1>").replaceAll("<([^/].+?)>", "<xhtml:$1>");

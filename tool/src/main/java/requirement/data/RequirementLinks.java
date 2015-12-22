@@ -103,7 +103,7 @@ public class RequirementLinks {
 	
 	@Override
 	public void process(final ReaderData readerData, final Set<TraceableArtifact> outputList) {
-	    final RequirementWParent targetRequirement = readerData.getTraceabilityLinker().getRequirement(this.reference);
+	    final RequirementWParent targetRequirement = readerData.getTraceabilityLinker().getRequirementByNumberText(this.reference);
 	    if (targetRequirement != null) outputList.add(targetRequirement);	    
 	    else if (EXTRACT_EXTERNAL_LINKS) {
 		logger.log(Level.FINE, "target requirement seems to be out of my scope. Target ID is \"{0}\". Will add a proxy.", this.reference);

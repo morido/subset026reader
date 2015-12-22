@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import org.apache.poi.hwpf.model.StyleSheet;
 import org.apache.poi.hwpf.sprm.SprmBuffer;
 import org.apache.poi.hwpf.sprm.SprmOperation;
+import org.apache.poi.hwpf.usermodel.CharacterRun;
 import org.apache.poi.hwpf.usermodel.HWPFList;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.ParagraphProperties;
@@ -196,6 +197,34 @@ public final class ParagraphListAware {
 	return this.list != null;
     }
     
+    /**
+     * Check if all characterRuns of this list-paragraph are marked as deleted; if so we will technically have two paragraphs with the same {@code numberText} (this one and the very next, non-deleted one)
+     * 
+     * @return {@code true} if the entire paragraph must be regarded as deleted; {@code false otherwise}
+     */
+    public boolean entireParagraphIsMarkedDeleted() {
+	assert this.paragraph.isInList();	
+	// TODO we could add a hook here to allow bulleted paragraphs to pass this test (since bulleting will not influence the overall numbering)
+	
+        final int numCharacterRuns = this.paragraph.numCharacterRuns();	
+        final CharacterRun lastCharacterRun = this.paragraph.getCharacterRun(numCharacterRuns-1);
+        if (numCharacterRuns == 1 && lastCharacterRun.isMarkedDeleted()) {
+            // single characterRun in here
+            // Note: there is no integration test for this (seems impossible to craft...), but it triggers for item "5.9.6 State Diagram" in Baseline 2.3.0.d of subset-026
+            return true;
+        }
+        else if (numCharacterRuns > 1 && "\r".equals(lastCharacterRun.text()) && !lastCharacterRun.isMarkedDeleted()) {
+            // there is a (complex) paragraph in here            
+            for (int i = 0; i < numCharacterRuns-1; i++) {
+        	// check if all remaining characterRuns are marked as deleted
+        	if (!this.paragraph.getCharacterRun(i).isMarkedDeleted()) return false;
+            }
+            return true;
+        }
+        // nothing deleted here
+        return false;
+    }
+
     /**
      * Check the list membership of a paragraph on the basis of a given {@code ilvl} and {@code ilfo}
      * 

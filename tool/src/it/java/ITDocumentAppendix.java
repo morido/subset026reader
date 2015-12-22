@@ -2,7 +2,6 @@ import static org.junit.Assert.*;
 
 import java.util.Arrays;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import docreader.list.ListToRequirementProcessor;
@@ -24,42 +23,35 @@ import test.helper.ITGenericReader;
  */
 public class ITDocumentAppendix extends ITGenericReader {
 
-    private static String filename = getResourcesDir() + "3_appendix.doc"; 
-    private ListToRequirementProcessor listToRequirementProcessor;
-
-    /**
-     * Test setup
-     */
-    @Before
-    public void setUp() {
-	setupTest("List Reader Test New Baselist", filename);
-	this.listToRequirementProcessor = new ListToRequirementProcessor(this.readerData);
-    }
     
     /**
-     * Test the appendix of chapter 3
+     * Test the appendix of chapter 3, Baseline 3
      */
     @Test
-    public void test() {	
+    public void test_330() {
+	final String filename = getResourcesDir() + "3_appendix.doc";
+	setupTest("List Reader Test New Baselist", filename);
+	final ListToRequirementProcessor listToRequirementProcessor = new ListToRequirementProcessor(this.readerData);
+	
 	int individualRequirementTestCounter = 0;
 	for(int currentRangeNum=0; currentRangeNum<this.readerData.getRange().numParagraphs(); currentRangeNum++) {
-	    currentRangeNum = this.listToRequirementProcessor.processParagraph(currentRangeNum);	    
+	    currentRangeNum = listToRequirementProcessor.processParagraph(currentRangeNum);	    
 	    
 	    // check for correct fake number attribution
 	    switch(currentRangeNum) {
 	    case 12:
-		assertEquals("A.3", this.listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+		assertEquals("A.3", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
 	    case 13:
-		assertEquals("A.3.1", this.listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+		assertEquals("A.3.1", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
 	    case 292:
-		assertEquals("A.3.4.1.2", this.listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+		assertEquals("A.3.4.1.2", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
 	    case 602:
-		assertEquals("A.3.4.1.3.d[17]", this.listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+		assertEquals("A.3.4.1.3.d[17]", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
 	    default:
 		break;
 	    }
 	    
-	    final RequirementOrdinary currentRequirement = this.listToRequirementProcessor.getCurrentRequirement();
+	    final RequirementOrdinary currentRequirement = listToRequirementProcessor.getCurrentRequirement();
 	    if (currentRequirement != null) {
 		currentRangeNum += new RequirementReader(this.readerData, currentRequirement, currentRangeNum).read();
 	    }
@@ -67,7 +59,7 @@ public class ITDocumentAppendix extends ITGenericReader {
 	
 	assertEquals(4, individualRequirementTestCounter);
 	
-	final String tree = getTree(this.listToRequirementProcessor.getRootRequirement(), 0);
+	final String tree = getTree(listToRequirementProcessor.getRootRequirement(), 0);
 	final String[] actualTree = tree.split("\n");
 	assertEquals(586, actualTree.length);	
 	// check for the beginning of the tree (new baselist case)
@@ -102,5 +94,46 @@ public class ITDocumentAppendix extends ITGenericReader {
 	assertEquals("         A.3.4.1.3.d[3].[t]*.[r][54].[c][4]", actualTree[571]);
 	assertEquals("      A.3.4.1.3.d[17]", actualTree[actualTree.length-1]);	
     }
-
+    
+    
+    /**
+     * Test the appendix of chapter 3, Baseline 2
+     */
+    @Test
+    public void test_230d() {
+	final String filename = getResourcesDir() + "3_appendix_230.doc";
+	setupTest("List Reader Test New Baselist", filename);
+	final ListToRequirementProcessor listToRequirementProcessor = new ListToRequirementProcessor(this.readerData);
+	
+	int individualRequirementTestCounter = 0;
+	for(int currentRangeNum=0; currentRangeNum<this.readerData.getRange().numParagraphs(); currentRangeNum++) {
+	    currentRangeNum = listToRequirementProcessor.processParagraph(currentRangeNum);	    
+	    
+	    if (listToRequirementProcessor.getCurrentRequirement() != null)
+		//System.out.println(currentRangeNum + " " + listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag());
+	    
+	    // check for correct fake number attribution
+	    switch(currentRangeNum) {
+	    case 0:
+		assertEquals("A.3", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+	    case 1:
+		assertEquals("A.3.1", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+	    case 57:
+		assertEquals("A.3.2", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+	    case 136:
+		assertEquals("A.3.3", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+	    case 138:
+		assertEquals("A.3.3[2].1", listToRequirementProcessor.getCurrentRequirement().getHumanReadableManager().getTag()); individualRequirementTestCounter++; break;
+	    default:
+		break;
+	    }
+	    
+	    final RequirementOrdinary currentRequirement = listToRequirementProcessor.getCurrentRequirement();
+	    if (currentRequirement != null) {
+		currentRangeNum += new RequirementReader(this.readerData, currentRequirement, currentRangeNum).read();
+	    }
+	}
+	
+	assertEquals(5, individualRequirementTestCounter);
+    }
 }

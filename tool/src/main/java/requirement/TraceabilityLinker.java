@@ -27,6 +27,7 @@ public final class TraceabilityLinker {
     private final Map<String, Integer> requirementIdToWordLinker = new HashMap<>();    
     private final Map<String, RequirementWParent> figureResolver = new HashMap<>();
     private final Map<String, RequirementWParent> tableResolver = new HashMap<>();
+    private final Map<String, String> requirementNumberTextResolver = new HashMap<>();
     private final TraceabilityLinkerNonQualified traceabilityLinkerNonQualified = new TraceabilityLinkerNonQualified();
 
     /**
@@ -42,7 +43,23 @@ public final class TraceabilityLinker {
 		
 	this.requirementIdToWordLinker.put(hrTag, requirement.getTraceId());
 	this.wordToRequirementLinker.put(requirement.getTraceId(), requirement);
-	this.traceabilityLinkerNonQualified.addRequirement(requirement);
+	this.traceabilityLinkerNonQualified.addRequirement(requirement);			
+    }
+    
+    
+    /**
+     * Adds a new link between the MS Word Trace-Id and the original numberText of a requirement
+     * 
+     * @param requirement
+     */
+    public void addNumberTextLink(final RequirementWParent requirement) {
+	if (requirement == null) throw new IllegalArgumentException("Given requirement cannot be null.");
+	
+	final String numberText = requirement.getMetadata().getNumberText();
+	if (numberText == null) throw new IllegalArgumentException("numberText of this requirement cannot be null.");
+	
+	final String hrTag = requirement.getHumanReadableManager().getTag();
+	if (numberText.matches(".*\\d.*") && !numberText.equals(hrTag)) this.requirementNumberTextResolver.put(numberText, hrTag);
     }
   
     /**
@@ -93,16 +110,32 @@ public final class TraceabilityLinker {
 
     
     /**
-     * get a requirement by its identifier
+     * get a requirement by its traceability identifier
      * 
-     * @param humanReadableId
+     * @param humanReadableId the id used by the TraceabilityManagerHumanReadable
      * @return the requirement corresponding to the given humanReadableId or {@code null} if no such requirement exists
      */
     public RequirementWParent getRequirement(final String humanReadableId) {
 	if (humanReadableId == null) throw new IllegalArgumentException("humanReadableId cannot be null.");
 	final Integer wordId = getWordId(humanReadableId);
 	return wordId == null ? null : getRequirement(wordId);
-    }        
+    }
+    
+    /**
+     * get a requirement by its numberText
+     * 
+     * @param numberText the original numberText of a requirement
+     * @return the requirement corresponding to the given numberText or {@code null} if no such requirement exists
+     */
+    public RequirementWParent getRequirementByNumberText(final String numberText) {
+	if (numberText == null) throw new IllegalArgumentException("numberText cannot be null.");
+	
+	// lets see if this numberText is known; if so resolve it, otherwise forward unchanged
+	final String humanReadableId = this.requirementNumberTextResolver.get(numberText);
+	final String queryString = humanReadableId != null ? humanReadableId : numberText;
+	return getRequirement(queryString);
+    }
+    
     
     /**
      * Resolve a non-fully qualified table number to the caption-requirement of the respective table

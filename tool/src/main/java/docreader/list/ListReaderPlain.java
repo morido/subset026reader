@@ -37,6 +37,14 @@ final class ListReaderPlain {
     private ListLevel lvlOfLastProcessedParagraph;    
     private Boolean paragraphIndentationMustBePreserved = null;
 
+    private class ListProcessingException extends IllegalStateException {
+	private static final long serialVersionUID = -1702633763161544530L;
+
+	public ListProcessingException(final String message){
+	    super(message);
+	}
+    }
+
     /**
      * Ordinary constructor for a new list reader
      * 
@@ -55,17 +63,20 @@ final class ListReaderPlain {
      * @return String which represents the numbering of this list paragraph; never {@code null}
      * @throws IllegalArgumentException If the given paragraph is {@code null} or is not part of a list
      * @throws IllegalStateException If problems with the document are encountered
+     * @throws ListProcessingException if the entire paragraph is marked as deleted via revision marking
      */
     public String getFormattedNumber(final ParagraphListAware paragraph) {
 	if (paragraph == null) throw new IllegalArgumentException("Given paragraph cannot be null.");
 	if (!paragraph.isInList()) throw new IllegalArgumentException("Can only process list paragraphs.");
 
+	if (paragraph.entireParagraphIsMarkedDeleted()) throw new ListProcessingException("The entire paragraph was marked as deleted while revision marking was on. This potentially leads to non-unique numberTexts. Cannot proceed." + System.lineSeparator() + "Text: " + paragraph.getParagraph().text());
+	
 	final HWPFList list = paragraph.getList();
 
 	// [MS-DOC], v20140721, 2.4.6.3, Part 1, Step 2	
 	final int iLvlCur = paragraph.getIlvl();
 	if (iLvlCur > list.getListData().getLevels().length-1) {
-	    logger.log(Level.SEVERE, "List levels are presumably not zero-based. This can happen if the file was written by 3rd party tools like OpenOffice. Cannot handle this. Giving up.");
+	    logger.log(Level.SEVERE, "List levels are presumably not zero-based. This can happen if the file was written by 3rd party tools like LibreOffice/OpenOffice. Cannot handle this. Giving up.");
 	    throw new IllegalStateException();
 	}
 	final int iLfoCur = getTrueIlfo(paragraph.getIlfo());
@@ -234,7 +245,7 @@ final class ListReaderPlain {
 	    this.paragraphIndentationMustBePreserved = Boolean.FALSE;
 	}
 	return output;
-    }
+    }       
     
     
     /**
@@ -499,7 +510,7 @@ final class ListReaderPlain {
 	/**
 	 * Convert the arabic number representation of a list item to a ordinal one 
 	 * 
-	 * @param input THe number to be converted to ordinal
+	 * @param input The number to be converted to ordinal
 	 * @return A string containing the original number with English ordinal suffixes
 	 */
 	private static String intToOrdinal(final int input) {

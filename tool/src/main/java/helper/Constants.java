@@ -19,7 +19,7 @@ public final class Constants {
 	/**
 	 * Version number of this tool
 	 */
-	public static final String VERSION = "0.6.1";
+	public static final String VERSION = "0.8.1";
 	
 	
 	/**
@@ -103,6 +103,12 @@ public final class Constants {
 	 * Relative storage directory of statistical data; only applicable if {@link #WRITE_STATISTICAL_DATA} is set
 	 */
 	public static final String STATISTICS_STORE_DIR = "statistics";
+	
+	/**
+	 * If set, the resulting ReqIF will contain descriptive class-attributes for certain elements.
+	 * This, however, makes the file non-compliant with the ReqIF-standard. 
+	 */
+	public static final boolean WRITE_CLASS_ATTRIBUTES = false;
     }
 
 

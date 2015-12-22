@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import helper.HTMLHelper;
 import helper.TraceabilityManagerHumanReadable;
 import helper.XmlStringWriter;
 import helper.word.DataConverter;
@@ -79,11 +80,14 @@ public class ImageReader {
 	if (hrManagerParent == null) throw new IllegalArgumentException("hrManagerParent cannot be null.");
 
 	final FilenameDeterminer filenameDeterminer = new FilenameDeterminer(hrManagerParent, PictureType.IMAGE);
-	if (pictureAvailable()) writeObject(filenameDeterminer);
-	else {
-	    logger.log(Level.WARNING, "Expected an image here but did not find one. Please extract manually. Will write a placeholder.");
-	    writeObjectNotFound(filenameDeterminer);
-	}	
+	if (filenameDeterminer.determineFilename()) {
+	    if (pictureAvailable()) writeObject(filenameDeterminer);
+	    else {
+		logger.log(Level.WARNING, "Expected an image here but did not find one. Please extract manually. Will write a placeholder.");
+		writeObjectNotFound(filenameDeterminer);
+	    }
+	}
+	// no context is available; thus we do not write anything (this may happen in temporary hierarchies such as captions)
     }
 
     /**
@@ -98,11 +102,14 @@ public class ImageReader {
 	if (!this.isInlined) logger.log(Level.INFO, "We have an equation which is not inlined. I did not expect that. Will process anyways.");
 
 	final FilenameDeterminer filenameDeterminer = new FilenameDeterminer(hrManagerParent, PictureType.EQUATION);
-	if (pictureAvailable()) writeObject(filenameDeterminer);
-	else {
-	    logger.log(Level.WARNING, "Expected an equation here but did not find one. Please extract manually. Will write a placeholder.");
-	    writeObjectNotFound(filenameDeterminer);
-	}	
+	if (filenameDeterminer.determineFilename()) {
+	    if (pictureAvailable()) writeObject(filenameDeterminer);
+	    else {
+		logger.log(Level.WARNING, "Expected an equation here but did not find one. Please extract manually. Will write a placeholder.");
+		writeObjectNotFound(filenameDeterminer);
+	    }
+	}
+	// no context is available; thus we do not write anything (this may happen in temporary hierarchies such as captions)
     }
 
     /**
@@ -135,7 +142,7 @@ public class ImageReader {
 	writeToFile(filenameDeterminer, width, height);	
 
 	this.xmlwriter.writeStartElement("object");
-	this.xmlwriter.writeAttribute("data", filenameDeterminer.getFilenameDisplay());
+	this.xmlwriter.writeAttribute("data", HTMLHelper.sanitizeUri(filenameDeterminer.getFilenameDisplay()));
 	this.xmlwriter.writeAttribute("type", "image/png");
 	this.xmlwriter.writeAttribute("width", Integer.toString(width));
 	this.xmlwriter.writeAttribute("height", Integer.toString(height));
@@ -154,12 +161,12 @@ public class ImageReader {
 	this.xmlwriter.writeStartElement("object");
 	String filename = filenameDeterminer.getFilenameDisplay();
 	if (filename.length() >= 1 && filename.charAt(filename.length()-1) == '.') filename = filename.substring(0, filename.length()-1); // remove the final dot to make it look prettier 
-	this.xmlwriter.writeAttribute("data", filename);
+	this.xmlwriter.writeAttribute("data", HTMLHelper.sanitizeUri(filename));
 	this.xmlwriter.writeAttribute("type", "image/png");
 	this.xmlwriter.writeCharacters("Picture missing. No alternative text available.");
 	this.xmlwriter.writeEndElement("object");
     }
-
+        
     /**
      * Write data to a physical file (if possible) or save information about the file for later retrieval
      * 
@@ -182,7 +189,7 @@ public class ImageReader {
 		logger.log(Level.WARNING, "Could not write data to disk because of issues inside POI.", e);
 	    }
 	}
-	else {	  
+	else {
 	    // no picture data available
 	    if (this.shapeStartOffset != null) {
 		// picture is a shape
@@ -201,13 +208,13 @@ public class ImageReader {
      * Determine fully-qualified filename and maintain list of unconvertible files (i.e. files which need postprocessing by some external helper tool)
      */
     private class FilenameDeterminer {	
-	private final String fullFilenameStore;
-	private final String baseNameStore;
-	private final String baseNameDisplay;
-	private final String fullFilenameDisplay;	
+	private String fullFilenameStore;
+	private String baseNameStore;
+	private String baseNameDisplay;
+	private String fullFilenameDisplay;	
 	private final TraceabilityManagerHumanReadable hrManagerParent;
 	private final PictureType pictureType;
-	private final boolean pictureNeedsConversion;
+	private boolean pictureNeedsConversion;
 	private final String mediaStorePrefix = ImageReader.this.readerData.getMediaStoreDirRelative();
 
 	/**
@@ -215,10 +222,19 @@ public class ImageReader {
 	 * @param pictureType Qualifies if this is an image or an equation; effects the trace string	
 	 */
 	public FilenameDeterminer(final TraceabilityManagerHumanReadable hrManagerParent, final PictureType pictureType) {
-	    assert hrManagerParent != null && pictureType != null;	   
+	    assert hrManagerParent != null && pictureType != null;
 	    this.hrManagerParent = hrManagerParent;
 	    this.pictureType = pictureType;
-
+	}
+	
+	/**
+	 * Main method
+	 * 
+	 * @return {@code true} if there is a hierarchy present from which we can infer a filename; {@code false} otherwise
+	 */
+	public boolean determineFilename() {	    
+	    if (!contextAvailable()) return false;
+	    	   
 	    // Step 1: Determine the filename for storage on disk
 	    final StringBuilder baseFilenameStore = new StringBuilder();
 	    final String suggestedExtension;
@@ -229,7 +245,7 @@ public class ImageReader {
 	    else {
 		// ordinary mode
 		suggestedExtension = ImageReader.this.picture.suggestFileExtension();
-	    }	    
+	    }
 	    final String uniqueFilename = getUniqueFilename(suggestedExtension);
 	    baseFilenameStore.append(uniqueFilename);
 	    baseFilenameStore.append('.');
@@ -254,41 +270,10 @@ public class ImageReader {
 	    }
 	    this.baseNameDisplay = baseFilenameDisplay.toString();
 	    this.fullFilenameDisplay = this.mediaStorePrefix + '/' + this.baseNameDisplay; // separator is always forward-slash irrespectively of OS
+	    
+	    return true;
 	}
 	
-	/**
-	 * Determine a unique filename for the resulting file.
-	 * <p>One paragraph may possibly contain more than one inlined picture. So we need this function to make them distinguishable.</p>
-	 * 
-	 * @param suggestedExtension the filename extension as it is suggested by POI
-	 * @return the filename without a trailing dot and extension
-	 */
-	private String getUniqueFilename(final String suggestedExtension) {			
-	    assert suggestedExtension != null && !"".equals(suggestedExtension);
-
-	    // Step 1: Determine unique filename	    
-	    final String absolutePrefix = ImageReader.this.readerData.getAbsoluteFilePathPrefix() + File.separator + this.mediaStorePrefix + File.separator;
-
-	    assert this.hrManagerParent.getLinkedRequirement() != null;
-	    final RequirementWParent.InlineElementCounter inlineElementCounter = this.hrManagerParent.getLinkedRequirement().getInlineElementCounter();
-	    final TraceabilityManagerHumanReadable hrManagerCurrent = new TraceabilityManagerHumanReadable();
-	    switch (this.pictureType) {
-	    case EQUATION:
-		hrManagerCurrent.addEquation(inlineElementCounter.getNextEquationNumber()); break;
-	    case IMAGE:
-		hrManagerCurrent.addImage(inlineElementCounter.getNextImageNumber()); break;
-	    default:
-		throw new IllegalStateException();
-	    }
-	    final TraceabilityManagerHumanReadable hrManagerFinal = new TraceabilityManagerHumanReadable(this.hrManagerParent, hrManagerCurrent);
-	    final String outputFilenameBase = ImageReader.this.readerData.getDocumentPrefix() + hrManagerFinal.getTagForFilename();
-	    assert !new File(absolutePrefix + outputFilenameBase + "." + suggestedExtension).isFile();
-
-	    // this is the basename of the resulting unique filename
-	    assert outputFilenameBase != null;	    
-	    return outputFilenameBase;
-	}
-
 	/**
 	 * Adds this picture including its dimensions to the conversion store if necessary
 	 * 
@@ -323,6 +308,46 @@ public class ImageReader {
 	 */
 	public String getFilenameStore() {
 	    return this.fullFilenameStore;
+	}
+	
+	/**
+	 * Determine a unique filename for the resulting file.
+	 * <p>One paragraph may possibly contain more than one inlined picture. So we need this function to make them distinguishable.</p>
+	 * 
+	 * @param suggestedExtension the filename extension as it is suggested by POI
+	 * @return the filename without a trailing dot and extension
+	 */
+	private String getUniqueFilename(final String suggestedExtension) {			
+	    assert suggestedExtension != null && !"".equals(suggestedExtension);
+
+	    // Step 1: Determine unique filename	    
+	    final String absolutePrefix = ImageReader.this.readerData.getAbsoluteFilePathPrefix() + File.separator + this.mediaStorePrefix + File.separator;
+
+	    assert contextAvailable();
+    	    final RequirementWParent.InlineElementCounter inlineElementCounter = this.hrManagerParent.getLinkedRequirement().getInlineElementCounter();
+	    final TraceabilityManagerHumanReadable hrManagerCurrent = new TraceabilityManagerHumanReadable();
+	    switch (this.pictureType) {
+	    case EQUATION:
+		hrManagerCurrent.addEquation(inlineElementCounter.getNextEquationNumber()); break;
+	    case IMAGE:
+		hrManagerCurrent.addImage(inlineElementCounter.getNextImageNumber()); break;
+	    default:
+		throw new IllegalStateException();
+	    }
+	    final TraceabilityManagerHumanReadable hrManagerFinal = new TraceabilityManagerHumanReadable(this.hrManagerParent, hrManagerCurrent);
+	    final String outputFilenameBase = ImageReader.this.readerData.getDocumentPrefix() + hrManagerFinal.getTagForFilename();
+	    assert !new File(absolutePrefix + outputFilenameBase + "." + suggestedExtension).isFile();
+
+	    // this is the basename of the resulting unique filename
+	    assert outputFilenameBase != null;	    
+	    return outputFilenameBase;
+	}
+
+	/**
+	 * @return {@code true} if there is a hierarchy present from which we can infer a filename; {@code false} otherwise
+	 */
+	private boolean contextAvailable() {
+	    return this.hrManagerParent.getLinkedRequirement() != null;
 	}
     }
 }

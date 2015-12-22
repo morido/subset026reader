@@ -184,7 +184,11 @@ public final class TableReader extends RangeReader {
 	final TableContentOverrideManager tableOverrideManager = new TableContentOverrideManager(this.readerData, table, tableDimensionsManager, tableMatcher);
 	
 	for(int rn=0; rn<table.numRows(); rn++) {			
-	    final TableRow row = table.getRow(rn);						
+	    final TableRow row = table.getRow(rn);
+	    
+	    // circumvent a bug in WORD when it spits out ghost rows; triggers for subset026, 3.3.0, 7.5.1.78 but (sadly) is not testable in isolation
+	    if (row.numCells() == 0) continue;	    
+	    
 	    RequirementOrdinary rowRequirement = null; // conservatively assume this row does not contain traceworthy cells
 	    xmlwriter.writeStartElement("tr");
 	    int mergeOffset = 0;

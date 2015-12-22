@@ -8,7 +8,7 @@ import test.helper.ITGenericListReader;
 
 
 /**
- * Test certain hierarchical structures in the subset026
+ * Test certain hierarchical structures in the subset-026
  * 
  * @author Moritz Dorka <moritz.dorka@mailbox.tu-dresden.de>
  */
@@ -345,6 +345,36 @@ public class ITListReaderStructures extends ITGenericListReader {
 		"   7.1.1",
 		"    7.1.1.0",
 		"    7.1.1.1"		
+	};
+	assertArrayEquals(expectedTree, actualTree);
+    }
+    
+    /**
+     * Test if bullet / figure hierarchy is correctly extracted
+     */    
+    @Test
+    public void testCorrectTracestringWhenNoBullet() {
+	final String filename = getResourcesDir() + "3_6_2_3_1_1.doc"; 
+	runIndividualTest("List Reader Tracestring Bullet Issue", filename);
+	
+	final String[] actualTree = getTree();	
+	
+	final String[] expectedTree = {
+		"",
+		" 3", //placeholder
+		"  3.1", //placeholder
+		"   3.1.1", //placeholder
+		"    3.1.1.1", //placeholder
+		"     3.1.1.1.1", //placeholder
+		"      3.1.1.1.1.1",
+		"       3.1.1.1.1.1.*[1]",
+		"       3.1.1.1.1.1.*[1][2]",
+		"        3.1.1.1.1.1.*[1][2].[f]9",
+		"         3.1.1.1.1.1.*[1][2].[f]9.C",
+		"       3.1.1.1.1.1.*[2]",
+		"       3.1.1.1.1.1.*[2][2]",
+		"        3.1.1.1.1.1.*[2][2].[f]10",
+		"         3.1.1.1.1.1.*[2][2].[f]10.C"		
 	};
 	assertArrayEquals(expectedTree, actualTree);
     }

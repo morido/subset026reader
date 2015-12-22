@@ -174,6 +174,7 @@ public class FakeFieldHandler extends CharacterRunRawProcessor {
 	    offset += childRequirementForwards(input, this.realLink, sanitizedTargets);
 	    if (offset > 0) writeLinks(sanitizedTargets);	    
 	    deletePosition += offset;
+	    this.paragraphHasLinks = true;
 	}
 	else {
 	    // check if we have a non qualified link (can only appear in the very beginning)
@@ -224,10 +225,10 @@ public class FakeFieldHandler extends CharacterRunRawProcessor {
 	    }
 	    final StringBuilder linkTarget = new StringBuilder(matcher.group(1));
 
-	    this.finalRunIsOfInterest = false;	    	    
+	    this.finalRunIsOfInterest = false;
 
 	    final Link baseLink;
-	    if (matcher.group("requirement") != null) {		
+	    if (matcher.group("requirement") != null) {	
 		if (!finalMode &&
 			(matcher.end() == input.length() || linkTarget.charAt(linkTarget.length()-1) == DELIMITER_LISTLEVEL || input.substring(matcher.end()).matches(" [a-z]?"))) {
 		    // there might be more characters of interest in the following characterRun; stop here and consume more characters

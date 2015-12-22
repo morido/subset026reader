@@ -26,7 +26,7 @@ public class ITTableReader extends ITGenericTableReader {
      * Test method for {@link docreader.range.table.TableReader#read()}. 
      */
     @Test
-    public void testRichText() {				
+    public void testRichText() {
 
 	//Check for number of paragraphs
 	assertEquals(39, this.paragraphsRead);

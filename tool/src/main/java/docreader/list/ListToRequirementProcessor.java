@@ -22,7 +22,7 @@ public class ListToRequirementProcessor {
     private final transient ListReader listReader;
     private transient RequirementRoot lastRequirement = new RequirementRoot();
     private final RequirementRoot rootRequirement = this.lastRequirement;    
-    private RequirementOrdinary currentRequirement; // NOPMD - intentionally non-transient; getter below
+    private RequirementOrdinary currentRequirement = null; // NOPMD - intentionally non-transient; getter below
     
     /**
      * Ordinary constructor
@@ -81,7 +81,7 @@ public class ListToRequirementProcessor {
 	    final TraceabilityManagerHumanReadable hrManager = new TraceabilityManagerHumanReadable();
 	    hrManager.addList(this.listReader.getFullyQualified());
 	    this.currentRequirement = new RequirementOrdinary(this.readerData, paragraph, hrManager, this.lastRequirement, this.listReader.getHRParent());
-	    this.currentRequirement.getMetadata().setNumberText(this.listReader.getAsPrinted());	    
+	    this.currentRequirement.setNumberText(this.listReader.getAsPrinted());	    
 	    this.lastRequirement = this.currentRequirement;
 	}
 	return newParagraphNum;

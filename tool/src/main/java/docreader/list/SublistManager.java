@@ -142,7 +142,12 @@ final class SublistManager {
 		// assume this list is at the same level as the directly preceding paragraph which is also not in a list 
 		if (this.predecessorNonListParagraph != null) outputTuple = this.predecessorNonListParagraph;
 		// assume this is a child of the last list paragraph
-		else if (this.lastListParagraph != null) outputTuple = this.lastListParagraph;
+		else if (this.lastListParagraph != null) {
+		    if (this.lastListParagraph.getBreadcrumbData().isUnnumbered()) { // with the current implementation this check is actually superfluous
+			this.lastListParagraph.setPredecessor(true);
+		    }
+		    outputTuple = this.lastListParagraph;
+		}
 		else throw new IllegalStateException("This is a non-indented, non-list paragraph which does not have any list predecessors. No idea where this belongs hierarchically.");
 	    }
 	    this.predecessorNonListParagraph = outputTuple;
@@ -1164,8 +1169,8 @@ final class SublistManager {
 	     */
 	    public boolean isPredecessor() {
 		return this.predecessor;
-	    }
-
+	    }	    
+	    
 	    /**
 	     * Check the predecessor for bullet field
 	     * 

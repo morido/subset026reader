@@ -413,6 +413,10 @@ public final class DocumentWriter {
 	    this.xmlwriter.writeStartElement("TOOL-EXTENSIONS");
 	    this.xmlwriter.writeStartElement("REQ-IF-TOOL-EXTENSION");
 	    this.xmlwriter.writeStartElement("configuration:ProrToolExtension");
+	    
+	    // circumvent a bug in ProR's validator - empty tag does not do any harm
+	    this.xmlwriter.writeCombinedStartEndElement("configuration:presentationConfigurations");
+	    
 	    this.xmlwriter.writeStartElement("configuration:specViewConfigurations");
 	    this.xmlwriter.writeStartElement("configuration:ProrSpecViewConfiguration");
 	    this.xmlwriter.writeAttribute("specification", "_specificationDocument");
@@ -423,6 +427,14 @@ public final class DocumentWriter {
 		this.xmlwriter.writeAttribute("width", Integer.toString(column.getValue()));
 	    }
 	    this.xmlwriter.writeEndElement("configuration:columns");
+	    
+	    // new Attribute to comply with ProR's validator as suggested by Ingo Weigelt, 10.12.15
+	    this.xmlwriter.writeStartElement("configuration:leftHeaderColumn");
+	    this.xmlwriter.writeCombinedStartEndElement("configuration:Column");
+	    this.xmlwriter.writeAttribute("label", "Lead Header Column");
+	    this.xmlwriter.writeAttribute("width", "71");
+	    this.xmlwriter.writeEndElement("configuration:leftHeaderColumn");
+	    
 	    this.xmlwriter.writeEndElement("configuration:ProrSpecViewConfiguration");
 	    this.xmlwriter.writeEndElement("configuration:specViewConfigurations");
 	    this.xmlwriter.writeStartElement("configuration:generalConfiguration");

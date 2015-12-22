@@ -187,7 +187,7 @@ public class TextAnnotator {
 		    }
 		    else {
 			// overlaps from left
-			final AnnotationRun fullyLeft = new AnnotationRun(comparisonRun.startOffset, longest.startOffset-1, comparisonRun.annotator);
+			final AnnotationRun fullyLeft = new AnnotationRun(comparisonRun.startOffset, longest.startOffset, comparisonRun.annotator);
 			final AnnotationRun fullyEmbedded = new AnnotationRun(longest.startOffset, comparisonRun.endOffset, comparisonRun.annotator);
 			leftSubTree.add(fullyLeft);
 			embeddedSubTree.add(fullyEmbedded);

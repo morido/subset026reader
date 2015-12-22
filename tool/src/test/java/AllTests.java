@@ -2,6 +2,7 @@ import helper.CSSManagerTest;
 import helper.nlp.NLPJobTest;
 import helper.subset26.MetadataDeterminerSecondPassTest;
 import helper.subset26.MetadataDeterminerTest;
+import helper.word.DataConverterTest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -24,6 +25,7 @@ import docreader.range.paragraph.characterRun.FakeFieldHandlerTest;
     MetadataDeterminerSecondPassTest.class,
     CSSManagerTest.class,
     TextAnnotatorTest.class,
+    DataConverterTest.class,
     // NLPJobTest.class, // call this separately; for some reason it gets stuck when executing through this suite
 })
 public class AllTests {

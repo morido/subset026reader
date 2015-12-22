@@ -42,7 +42,7 @@ public class ITFigureReader extends ITGenericFigureReader {
 	final String[] expectedFirstRequirementText = {
 		"Note: Figure 38 gives an example of the influence of the various track/train characteristics on A_safe(V,d) and consequently on the EBD curve (see 3.13.8.3).",
 	"<span style=\"font-family:Arial; font-size:11pt;\">Note: <span class=\"field\" style=\"color:blue; text-decoration:underline;\">Figure 38</span> gives an example of the influence of the various track/train characteristics on A_safe(V,d) and consequently on the EBD curve (see <span class=\"field\">3.13.8.3</span>).</span>"};		
-	final String expectedFigureRequirementText = "<object data=\"media/Figure_Test-3_1_1_1_1_1[2]_[f]38_I.png\" type=\"image/png\" width=\"579\" height=\"262\">Picture missing. No alternative text available.</object>";
+	final String expectedFigureRequirementText = "<object data=\"media/Figure_Test-3_1_1_1_1_1%5B2%5D_%5Bf%5D38_I.png\" type=\"image/png\" width=\"579\" height=\"262\">Picture missing. No alternative text available.</object>";
 	final String[] expectedFigureCaptionRequirementText = {
 		"Figure 38: Influence of track/train characteristics on A_safe",
 	"<p style=\"display:block; text-align:justify;\"><b><span style=\"font-family:Arial; font-size:11pt;\">Figure <span class=\"field\" style=\"background-color:yellow; font-family:courier; font-weight:bolder;\">{Figure 38}</span>: Influence of track/train characteristics on A_safe</span></b></p>"};
@@ -125,11 +125,11 @@ public class ITFigureReader extends ITGenericFigureReader {
 	};
 	
 	final String[] firstFigure = {
-		"<object data=\"media/Figure_Test_With_Fallback-3_1_1_1_1_+[2][2]_[f]21a_I.png\" type=\"image/png\" width=\"559\" height=\"251\">Picture missing. No alternative text available.</object>",
+		"<object data=\"media/Figure_Test_With_Fallback-3_1_1_1_1_%2B%5B2%5D%5B2%5D_%5Bf%5D21a_I.png\" type=\"image/png\" width=\"559\" height=\"251\">Picture missing. No alternative text available.</object>",
 		"Figure 21a: Extension of an MA in Level 1, one section in the new MA"
 	};
 	final String[] secondFigure = {
-		"<object data=\"media/Figure_Test_With_Fallback-3_1_1_1_1_+[2][3]_[f]21b_I.png\" type=\"image/png\" width=\"559\" height=\"268\">Picture missing. No alternative text available.</object>"
+		"<object data=\"media/Figure_Test_With_Fallback-3_1_1_1_1_%2B%5B2%5D%5B3%5D_%5Bf%5D21b_I.png\" type=\"image/png\" width=\"559\" height=\"268\">Picture missing. No alternative text available.</object>"
 		, "Figure 21b: Extension of an MA in level 1, two sections in the new MA"
 	};
 	
@@ -185,7 +185,7 @@ public class ITFigureReader extends ITGenericFigureReader {
 	final String[] expectedFilenames = { "Figure_Test_No_Indentation-2_1_1_1_2[2]_[f]6_I.wmf" };	
 	
 	final String[] figure = {
-		"<object data=\"media/Figure_Test_No_Indentation-2_1_1_1_2[2]_[f]6_I.png\" type=\"image/png\" width=\"544\" height=\"376\">Picture missing. No alternative text available.</object>",
+		"<object data=\"media/Figure_Test_No_Indentation-2_1_1_1_2%5B2%5D_%5Bf%5D6_I.png\" type=\"image/png\" width=\"544\" height=\"376\">Picture missing. No alternative text available.</object>",
 		"Figure 6: ERTMS/ETCS Application Level 2"
 	};
 	
@@ -308,7 +308,7 @@ public class ITFigureReader extends ITGenericFigureReader {
 	final String[] expectedFilenames = { "Figure_Test_Without_Field-2_1_1_1_1[2]_[f]2_I.wmf" };	
 	
 	final String[] figure = {
-		"<object data=\"media/Figure_Test_Without_Field-2_1_1_1_1[2]_[f]2_I.png\" type=\"image/png\" width=\"490\" height=\"249\">Picture missing. No alternative text available.</object>",
+		"<object data=\"media/Figure_Test_Without_Field-2_1_1_1_1%5B2%5D_%5Bf%5D2_I.png\" type=\"image/png\" width=\"490\" height=\"249\">Picture missing. No alternative text available.</object>",
 		"Figure 2: ERTMS/ETCS Application Level 0"
 	};
 	

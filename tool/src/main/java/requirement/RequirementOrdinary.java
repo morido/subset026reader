@@ -52,4 +52,14 @@ public class RequirementOrdinary extends RequirementWParent {
 	throw new IllegalAccessError("This method must not be called for this object of type " + this.getClass().toString());		
     }
     
+    /**
+     * Sets the original numberText of this new requirement
+     * 
+     * @param numberText numberText, never {@code null}
+     */
+    public final void setNumberText(final String numberText) {
+	if (numberText == null) throw new IllegalArgumentException("numberText cannot be null.");
+	getMetadata().setNumberText(numberText);
+	this.readerData.getTraceabilityLinker().addNumberTextLink(this);	
+    }
 }
